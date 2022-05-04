@@ -17,6 +17,7 @@ import sia.tacocloud.model.Taco;
 import sia.tacocloud.repository.IngredientRepository;
 
 import javax.validation.Valid;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -40,13 +41,12 @@ public class DesignTacoController {
 
     @GetMapping
     public String showDesignForm(Model model){
-        List<Ingredient> ingredients = StreamSupport.stream(
-                ingredientRepository.findAll().spliterator(), false).collect(Collectors.toList()
-        );
-
-        Type[] types = Type.values();
-        for(Type type : types){
-            model.addAttribute(type.toString().toLowerCase(), filterByType(ingredients, type));
+        List<Ingredient> ingredients = new ArrayList<>();
+        ingredientRepository.findAll().forEach(i -> ingredients.add(i));
+        Type[] types = Ingredient.Type.values();
+        for (Type type : types) {
+            model.addAttribute(type.toString().toLowerCase(),
+                    filterByType(ingredients, type));
         }
 
         model.addAttribute("design", new Taco());
