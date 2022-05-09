@@ -2,7 +2,9 @@ package sia.tacocloud.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -11,11 +13,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.support.SessionStatus;
+import sia.tacocloud.config.TacoConfig;
 import sia.tacocloud.model.Order;
 import sia.tacocloud.model.User;
 import sia.tacocloud.repository.OrderRepository;
 
 import javax.validation.Valid;
+import java.awt.print.Pageable;
 
 @Controller
 @Slf4j
@@ -23,6 +27,7 @@ import javax.validation.Valid;
 @RequiredArgsConstructor
 public class OrderController {
     private final OrderRepository orderRepository;
+    private final TacoConfig tacoConfig;
 
     @GetMapping("/current")
     public String orderForm(Model model){
@@ -43,5 +48,13 @@ public class OrderController {
         sessionStatus.setComplete();
         log.info("Order submitted: " + order);
         return "redirect:/";
+    }
+
+    @GetMapping
+    public String ordersForUser(@AuthenticationPrincipal User user, Model model){
+        Pageable pageable = (Pageable) PageRequest.of(0, tacoConfig.getPageSize());
+        model.addAttribute("orders", orderRepository.findByUserOrderByPlacedAtDesc(user, pageable));
+
+        return "orderList";
     }
 }
