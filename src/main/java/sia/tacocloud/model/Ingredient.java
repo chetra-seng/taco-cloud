@@ -11,7 +11,7 @@ import javax.persistence.Enumerated;
 import javax.persistence.Id;
 
 @Data
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+@RequiredArgsConstructor()
 @NoArgsConstructor(force = true)
 @Entity
 public class Ingredient {

@@ -13,13 +13,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.support.SessionStatus;
-import sia.tacocloud.config.TacoConfig;
+import sia.tacocloud.props.OrderProps;
 import sia.tacocloud.model.Order;
 import sia.tacocloud.model.User;
 import sia.tacocloud.repository.OrderRepository;
 
 import javax.validation.Valid;
+import java.awt.print.PageFormat;
 import java.awt.print.Pageable;
+import java.awt.print.Printable;
 
 @Controller
 @Slf4j
@@ -27,7 +29,7 @@ import java.awt.print.Pageable;
 @RequiredArgsConstructor
 public class OrderController {
     private final OrderRepository orderRepository;
-    private final TacoConfig tacoConfig;
+    private final OrderProps orderProps;
 
     @GetMapping("/current")
     public String orderForm(Model model){
@@ -52,7 +54,7 @@ public class OrderController {
 
     @GetMapping
     public String ordersForUser(@AuthenticationPrincipal User user, Model model){
-        Pageable pageable = (Pageable) PageRequest.of(0, tacoConfig.getPageSize());
+        Pageable pageable = (Pageable) PageRequest.of(0, orderProps.getPageSize());
         model.addAttribute("orders", orderRepository.findByUserOrderByPlacedAtDesc(user, pageable));
 
         return "orderList";
