@@ -1,62 +1,67 @@
 package sia.tacocloud.controller;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.Errors;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.SessionAttributes;
-import org.springframework.web.bind.support.SessionStatus;
-import sia.tacocloud.props.OrderProps;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
 import sia.tacocloud.model.Order;
-import sia.tacocloud.model.User;
 import sia.tacocloud.repository.OrderRepository;
 
-import javax.validation.Valid;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
-@Controller
-@Slf4j
-@RequestMapping("/orders")
-@RequiredArgsConstructor
-@SessionAttributes("order")
+@RestController
+@RequestMapping("/order")
+@CrossOrigin("*")
 public class OrderController {
     private final OrderRepository orderRepository;
-    private final OrderProps orderProps;
 
-    @GetMapping("/current")
-    public String orderForm(Model model){
-        model.addAttribute("order", new Order());
-        return "orderForm";
+    public OrderController(OrderRepository orderRepository) {
+        this.orderRepository = orderRepository;
     }
 
-    @PostMapping
-    public String processOrder(@Valid Order order, Errors errors, SessionStatus sessionStatus){
-        if(errors.hasErrors()){
-            return "orderForm";
+    @PutMapping(value = "/{id}", consumes = APPLICATION_JSON_VALUE)
+    public Order putOrder(@RequestBody Order order){
+        return orderRepository.save(order);
+    }
+
+    @PatchMapping(value = "/{orderId}", consumes = APPLICATION_JSON_VALUE)
+    public Order patchOrder(@PathVariable Long orderId, @RequestBody Order order){
+       Order oldOrder = orderRepository.findById(orderId).get();
+       if(order.getName() != null){
+           oldOrder.setName(order.getName());
+       }
+       if (order.getStreet() != null){
+           oldOrder.setStreet(order.getStreet());
+       }
+       if (order.getCity() != null) {
+           oldOrder.setCity(order.getCity());
+       }
+       if(order.getState() != null){
+           oldOrder.setState(order.getState());
+       }
+       if(order.getZip() != null){
+           oldOrder.setZip(order.getZip());
+       }
+       if(order.getCcNumber() != null) {
+           oldOrder.setCcNumber(order.getCcNumber());
+       }
+       if(order.getCcExpiration() != null){
+           oldOrder.setCcExpiration(order.getCcExpiration());
+       }
+       if(order.getCcCVV() != null){
+           oldOrder.setCcCVV(order.getCcCVV());
+       }
+
+       return orderRepository.save(oldOrder);
+    }
+
+    @DeleteMapping("/{orderId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteOrder(@PathVariable Long orderId){
+        try {
+            orderRepository.deleteById(orderId);
         }
-        log.info("Valid order: " + order.toString());
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) authentication.getPrincipal();
-        order.setUser(user);
-        orderRepository.save(order);
-        sessionStatus.setComplete();
-        log.info("Order submitted: " + order);
-        return "redirect:/";
-    }
+        catch (EmptyResultDataAccessException ex){
 
-    @GetMapping
-    public String ordersForUser(@AuthenticationPrincipal User user, Model model){
-        Pageable pageable = PageRequest.of(0, orderProps.getPageSize());
-        model.addAttribute("orders", orderRepository.findByUserOrderByPlacedAtDesc(user, pageable));
-
-        return "orderList";
+        }
     }
 }

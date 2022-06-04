@@ -1,68 +1,47 @@
 package sia.tacocloud.controller;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.Errors;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import sia.tacocloud.model.Ingredient;
-import sia.tacocloud.model.Ingredient.Type;
-import sia.tacocloud.model.Order;
 import sia.tacocloud.model.Taco;
-import sia.tacocloud.repository.IngredientRepository;
+import sia.tacocloud.repository.TacoRepository;
 
-import javax.validation.Valid;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
-@Slf4j
-@Controller
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+
+@RestController
 @RequestMapping("/design")
-@RequiredArgsConstructor
-@SessionAttributes("order")
+@CrossOrigin("*")
 public class DesignTacoController {
-    private final IngredientRepository ingredientRepository;
+    private final TacoRepository tacoRepository;
 
-    @ModelAttribute(name = "order")
-    public Order order(){
-        return new Order();
+    public DesignTacoController(TacoRepository tacoRepository) {
+        this.tacoRepository = tacoRepository;
     }
 
-    @ModelAttribute(name = "taco")
-    public Taco taco(){
-        return new Taco();
+    @GetMapping(value = "/recent", produces = APPLICATION_JSON_VALUE)
+    public Iterable<Taco> recentTacos(){
+        Pageable page = PageRequest.of(0, 12, Sort.by("createdAt").descending());
+        return tacoRepository.findAll(page).getContent();
     }
 
-    @GetMapping
-    public String showDesignForm(Model model){
-        List<Ingredient> ingredients = new ArrayList<>();
-        ingredientRepository.findAll().forEach(ingredients::add);
-        Type[] types = Ingredient.Type.values();
-        for (Type type : types) {
-            model.addAttribute(type.toString().toLowerCase(),
-                    filterByType(ingredients, type));
+    @GetMapping("/{id}")
+    public ResponseEntity<Taco> tacoById(@PathVariable Long id){
+        Optional<Taco> optionalTaco = tacoRepository.findById(id);
+        if(optionalTaco.isPresent()){
+            return new ResponseEntity<>(optionalTaco.get(), HttpStatus.OK);
         }
 
-        model.addAttribute("design", new Taco());
-        return "design";
+        return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
     }
 
-    private Iterable<Ingredient> filterByType(List<Ingredient> ingredients, Type type) {
-        return ingredients.stream().filter(ingredient -> ingredient
-                .getType()
-                .equals(type))
-                .collect(Collectors.toList());
-    }
-
-    @PostMapping
-    public String processDesign(@Valid Taco design, Errors errors){
-        if(errors.hasErrors()){
-            return "design";
-        }
-        log.info("Processing design: " + design);
-
-        return "redirect:/orders/current";
+    @PostMapping(consumes = APPLICATION_JSON_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public Taco postTaco(@RequestBody Taco taco){
+        return tacoRepository.save(taco);
     }
 }
